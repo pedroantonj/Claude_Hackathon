@@ -27,7 +27,8 @@ STOP = set("ACH CREDIT DEBIT CCD PAYMENT SEPA UEBERWEISUNG EREF NOTPROVIDED SVWZ
            "TRANSF FAVOR INMEDIATA DIRECT TRTP OVERBOEKING NAME REMI ORDP BONIFICO CAUSALE PRZELEW PRZYCH TYTUL VIR "
            "RECU EMIS MOTIF REF INV FRA FRAS PAGO FACTURA INVOICE ORDER RMR VENDOR PMT OUT SPEI RECIBIDO ENVIADO "
            "CONCEPTO PIX RECEBIDO GUTSCHRIFT".split())
-MAX_GAP, REFUND_MIN, REFUND_MAX = 60, 5, 90
+MAX_GAP, REFUND_MIN, REFUND_MAX = 80, 5, 90   # seeding horizon = max window
+GAP_AR, GAP_AP = 20, 80                          # EDA C-015: DUPLICATE AR 20 d, AP 80 d
 
 
 def toks(text):
@@ -127,7 +128,7 @@ class DuplicateDetector:
         tk = toks(txt)
         for date, it, tk0, txt0 in reversed(cands):
             gap = (d - _d(date)).days
-            if gap < 1 or gap > MAX_GAP:
+            if gap < 1 or gap > (GAP_AP if sc < 0 else GAP_AR):
                 continue
             inf = H.item_info(it)
             if inf is None or inf[3] != 0:

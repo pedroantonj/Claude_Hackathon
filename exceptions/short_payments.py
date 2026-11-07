@@ -20,6 +20,7 @@ import pickle
 from matching.text import cents, fmt, mitm
 
 WHT_BY_COUNTRY = {"MX": (0.0125, 0.10), "BR": (0.015, 0.10), "MA": (0.015, 0.10)}
+WHT_BY_ENTITY = {"ES01": (0.10,)}   # EDA C-016: ES01 {10 %}
 FX_TOL = 0.03
 RATIOS = (0.2, 0.25, 0.3, 1 / 3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 0.95, 1 / 6)
 MAXPREFIX = 30
@@ -95,7 +96,7 @@ def _wht_rates(S, t, items):
         c = S.cust_country.get(p, "")
         if c not in WHT_BY_COUNTRY:
             c = S.entities.at[t.entity, "country"] if t.entity in S.entities.index else ""
-        rs = WHT_BY_COUNTRY.get(c)
+        rs = WHT_BY_COUNTRY.get(c) or WHT_BY_ENTITY.get(t.entity)
         if not rs:
             continue
         if p in known:
@@ -383,7 +384,7 @@ def explain_short(t, T, A, pool, refs, S):
     if sbc and (sbc[0][0] in rsame or len(sbc) == 1):
         return sbc[0][1], "a4_bank_charges"
     # 3. overpayment: referenced invoice, or unique invoice with excess <= 10 %
-    over = [i for i in rsame if I[i]["k"] in ("ARI", "API") and I[i]["open"] < A <= 1.2 * I[i]["open"]]
+    over = [i for i in rsame if I[i]["k"] in ("ARI", "API") and I[i]["open"] < A <= 1.2 * I[i]["open"]]   # cap kept: uncapped gave P .447 on 2025-01..04
     if len(over) == 1 and len(rsame) == 1:
         i = over[0]
         return [(i, fmt(I[i]["open"]), "", "OVERPAYMENT")], "a4_overpayment"

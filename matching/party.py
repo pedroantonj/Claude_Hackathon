@@ -139,6 +139,17 @@ def _combo(same, A, refs, d, S):
     forced = [i for i in refs if i in same]
     rest = [i for i in same if i not in forced]
     target = A - sum(sg(I[i]["k"]) * I[i]["open"] for i in forced)
+    # EDA C-028: payments without reference settle OVERDUE invoices (97 %): subset-sum N<=25 over them first;
+    # unique -> assign (precision .997), several -> the oldest invoices; none -> fall through to the ranker.
+    od = sorted([i for i in rest if I[i]["k"] == "ARI" and I[i]["due"] and I[i]["due"] <= d],
+                key=lambda i: (I[i]["iss"], I[i]["dn"]))
+    if 1 <= len(od) <= 25:
+        sols = mitm_all([I[i]["open"] for i in od], target, cap=64, maxn=25) if target > 0 else []
+        if sols:
+            best = sols[0] if len(sols) == 1 else min(sols, key=lambda sl: sorted(I[od[k]]["iss"] for k in sl))
+            chosen = forced + [od[k] for k in best]
+            return [(i, fmt(I[i]["open"]), "", "") for i in chosen], \
+                ("subset_overdue1" if len(sols) == 1 else "subset_overdue_oldest")
     W = _weights(rest, d, S)
     if len(rest) > 22:
         # keep the most plausible items for a payment booked on d (learned payment-delay hazard; credit notes kept)
@@ -249,7 +260,7 @@ def match_ar(t, T, S):
         if I[i]["cur"] == t.currency:
             if A < o:
                 rows, rule = [(i, fmt(A), "", "PARTIAL")], "ref_partial"
-            elif A <= o * 1.15:
+            elif A <= o * 1.15:   # cap kept (uncapped OVERPAYMENT P .447 on 2025-01..04)
                 # small excess on a single referenced invoice; larger excess = the line pays more invoices
                 rows, rule = [(i, fmt(o), "", "OVERPAYMENT")], "ref_overpayment"
     # f. several referenced invoices, cash short of their total: oldest first in full, remainder PARTIAL on the next
