@@ -1,0 +1,12 @@
+# hackathon data is NOT versioned (large + competition data): put it in ../data or set BANKREC_DATA
+data/
+data_full/
+*.tar.gz
+*.zip
+# generated outputs, caches and submissions
+outputs/
+notes/.a4cache/
+__pycache__/
+*.pyc
+*.pkl
+.DS_Store
